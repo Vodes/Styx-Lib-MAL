@@ -1,0 +1,1 @@
+A multiplatform MAL API Wrapper/Toolkit for Styx.
