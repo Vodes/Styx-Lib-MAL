@@ -5,6 +5,7 @@ import io.ktor.client.statement.*
 import io.ktor.http.*
 import moe.styx.common.http.httpClient
 import moe.styx.common.json
+import moe.styx.common.util.Log
 import moe.styx.libs.mal.AbstractMALApiClient
 import moe.styx.libs.mal.RequestFields
 import moe.styx.libs.mal.returnables.MALApiResponse
@@ -22,6 +23,7 @@ suspend fun AbstractMALApiClient.fetchMediaDetails(id: Int, fields: String = Req
     }
     val body = response.bodyAsText()
     if (!response.status.isSuccess()) {
+        Log.e(this::class.simpleName) { "Failed to fetch media details! (${response.status.value})\nBody: $body" }
         return MALApiResponse(null, response.status)
     }
     return MALApiResponse(json.decodeFromString(body), response.status)

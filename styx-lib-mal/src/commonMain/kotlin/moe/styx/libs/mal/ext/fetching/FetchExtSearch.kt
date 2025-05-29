@@ -5,11 +5,9 @@ import io.ktor.client.statement.*
 import io.ktor.http.*
 import kotlinx.coroutines.delay
 import kotlinx.serialization.json.JsonObject
-import kotlinx.serialization.json.decodeFromJsonElement
-import kotlinx.serialization.json.jsonArray
-import kotlinx.serialization.json.jsonObject
 import moe.styx.common.http.httpClient
 import moe.styx.common.json
+import moe.styx.common.util.Log
 import moe.styx.libs.mal.AbstractMALApiClient
 import moe.styx.libs.mal.RequestFields
 import moe.styx.libs.mal.returnables.MALApiResponse
@@ -20,6 +18,7 @@ suspend fun AbstractMALApiClient.searchMedia(
     limit: Int = 100,
     offset: Int = 0,
     idsIn: List<Int> = emptyList(),
+    filterOutUnnecessary: Boolean = false,
     fields: String = RequestFields.MEDIA_DETAILS_FIELDS
 ): MALApiResponse<List<MALMedia>> {
     val response = doRequestWithRetry {
@@ -36,6 +35,7 @@ suspend fun AbstractMALApiClient.searchMedia(
     }
     val body = response.bodyAsText()
     if (!response.status.isSuccess()) {
+        Log.e(this::class.simpleName) { "Failed to search media! (${response.status.value})\nBody: $body" }
         return MALApiResponse(emptyList(), response.status)
     }
     val jsonObj = json.decodeFromString<JsonObject>(body)
@@ -44,7 +44,10 @@ suspend fun AbstractMALApiClient.searchMedia(
         return MALApiResponse(extracted, response.status)
     }
     val mutable = extracted.toMutableList()
-    idsIn.filter { id -> extracted.find { it.id == id } == null }.forEachIndexed { i, id ->
+    val missing = idsIn.filter { id -> extracted.find { it.id == id } == null }
+    if (missing.isNotEmpty())
+        Log.d(this::class.simpleName) { "The following IDs are missing after search: ${missing.joinToString()}\n\tFetching individually now." }
+    missing.forEachIndexed { i, id ->
         if (idsIn.size > i + 1) {
             delay(750)
         }
@@ -52,13 +55,6 @@ suspend fun AbstractMALApiClient.searchMedia(
         if (result.isSuccess && result.data != null)
             mutable.add(result.data)
     }
-    return MALApiResponse(mutable.toList(), response.status)
-}
 
-fun extractMediaNodesFromJson(obj: JsonObject): List<MALMedia> {
-    return runCatching {
-        val dataObj = obj["data"]!!.jsonArray
-        val nodes = dataObj.map { it.jsonObject }
-        nodes.map { json.decodeFromJsonElement<MALMedia>(it["node"]!!.jsonObject) }
-    }.getOrNull() ?: emptyList()
+    return MALApiResponse(if (!filterOutUnnecessary) mutable.toList() else mutable.filter { it.id in idsIn }, response.status)
 }

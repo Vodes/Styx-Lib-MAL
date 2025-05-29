@@ -1,5 +1,6 @@
 import kotlinx.coroutines.runBlocking
 import moe.styx.common.data.MyAnimeListData
+import moe.styx.common.util.Log
 import moe.styx.libs.mal.AbstractMALApiClient
 import moe.styx.libs.mal.ext.fetching.fetchMediaDetails
 import moe.styx.libs.mal.ext.fetching.searchMedia
@@ -8,6 +9,10 @@ import kotlin.test.Test
 import kotlin.test.assertTrue
 
 class TestFetch() {
+
+    init {
+        Log.debugEnabled = true
+    }
 
     private val client by lazy {
         val token = System.getenv()["MAL_CLIENT_TOKEN"]!!
