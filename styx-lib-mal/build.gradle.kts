@@ -31,7 +31,8 @@ kotlin {
                 implementation(libs.styx.common)
             }
         }
-        val commonTest by getting {
+        val jvmMain by getting
+        val jvmTest by getting {
             dependencies {
                 implementation(libs.kotlin.test)
             }
