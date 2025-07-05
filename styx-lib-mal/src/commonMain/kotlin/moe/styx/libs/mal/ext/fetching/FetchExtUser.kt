@@ -15,9 +15,11 @@ suspend fun AbstractMALApiClient.fetchCurrentUser(): MALApiResponse<MALUser?> {
     val url = urlWithParameters("https://api.myanimelist.net/v2/users/@me") {
         append("fields", RequestFields.USER_FIELDS)
     }
-    val response = httpClient.get(url) {
-        bearerAuth(malData.accessToken)
-        accept(ContentType.Application.Json)
+    val response = doRequestWithRetry {
+        httpClient.get(url) {
+            bearerAuth(it.accessToken)
+            accept(ContentType.Application.Json)
+        }
     }
     val body = response.bodyAsText()
     if (!response.status.isSuccess()) {
